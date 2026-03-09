@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>植物叶片病害识别及预防大数据指挥舱</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reset.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/new_index.css') }}">
+    <style>
+        .centerBox {
+            width: 75%;
+            margin-right: 15px;
+            background: transparent;
+        }
+        .boxFont {
+            font-size: 1.2vw;
+        }
+        .centerMainBox1 {
+            width: 100%;
+            height: 100%;
+        }
+        .centerMainBox2 {
+            width: 100%;
+            height: 20%;
+            position: relative;
+            margin-top: 15px;
+        }
+        .centerMainBox2 .first_border {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        .boxTitle2 {
+            width: 100%;
+            height: 10%;
+            font-size: .6vw;
+            text-align: center;
+            line-height: 10%;
+            margin-top: 1vw;
+            color: #0efcff;
+        }
+        .contList {
+            position: relative;
+            width: 70%;
+            height: 8vw;
+            margin: 1vw auto 0;
+        }
+        .content1 li {
+            display: none;
+        }
+        .baseBox {
+            width: 100%;
+            border: none;
+            background: none;
+        }
+        .boxTitle {
+            font-size: .8vw;
+            width: 38%;
+            margin-top: 1vw;
+            text-align: center;
+        }
+        .right {
+            float: right;
+        }
+        .baseBoxLeft {
+            width: 30%;
+            height: 95%;
+            position: relative;
+        }
+        .baseBoxRight {
+            width: 68%;
+            height: 100%;
+        }
+        .baseBoxLeft .first_border {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .baseBox1,
+        .baseBox2,
+        .baseBox3 {
+            position: relative;
+        }
+        .baseBox1 .hardware,
+        .baseBox2 img,
+        .baseBox3 img {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        .csbaseBox1 {
+            position: relative;
+            z-index: 999;
+        }
+        #canvas {
+            display: block;
+            margin: 0 auto;
+            width: 10vw;
+            height: 5vw;
+        }
+        .progress {
+            position: relative;
+        }
+        .progress img {
+            width: 12.5vw;
+            height: 2vw;
+            position: absolute;
+            top: .4vw;
+            right: -.2vw;
+        }
+        .progress .disease {
+            position: absolute;
+            top: .7vw;
+            left: .5vw;
+            color: #fff;
+            font-size: .8vw;
+        }
+        .progress .similar {
+            position: absolute;
+            top: .8vw;
+            left: 3vw;
+            color: #0efcff;
+            font-size: .5vw;
+        }
+        .navLeft {
+            position: absolute;
+            top: 5%;
+            left: 35%;
+            width: 3.5%;
+            height: 8%;
+            z-index: 999;
+        }
+        .navLeft > img {
+            width: 100%;
+            height: 100%;
+        }
+        .uploadContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            padding: 1vw;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            text-align: center;
+            color: #0efcff;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            overflow-y: auto;
+        }
+        .dropZone {
+            position: relative;
+            width: 90%;
+            min-height: 6vw;
+            border: 2px dashed #0ff;
+            border-radius: 8px;
+            background: rgba(0, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #0ff;
+            font-size: 0.9vw;
+            margin-bottom: 0.8vw;
+            padding: 1vw;
+        }
+        .dropZone:hover {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #0efcff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        .uploadBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5vw 1.2vw;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75vw;
+            margin-top: 0.3vw;
+            transition: all 0.3s;
+        }
+        .uploadBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        #preview {
+            margin-top: 0.8vw;
+            width: 90%;
+            max-height: 18vw;
+            min-height: 10vw;
+            overflow: hidden;
+            display: none;
+            border: 2px solid #0ff;
+            border-radius: 8px;
+            background-color: rgba(0, 0, 0, 0.8);
+            flex-shrink: 0;
+        }
+        #previewImg {
+            width: 100%;
+            height: auto;
+            max-height: 18vw;
+            object-fit: contain;
+            border-radius: 6px;
+            display: block;
+        }
+        #result {
+            margin-top: 0.8vw;
+            font-size: 0.75vw;
+            color: #0efcff;
+            display: none;
+            text-align: left;
+            padding: 0.8vw 1vw;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 6px;
+            width: 90%;
+            flex-shrink: 0;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        #result div {
+            margin: 0.4vw 0;
+            line-height: 1.6;
+        }
+        #result strong {
+            color: #fff;
+            font-weight: bold;
+            display: inline-block;
+            min-width: 5vw;
+        }
+        .severity-badge {
+            display: inline-block;
+            padding: 0.2vw 0.5vw;
+            border-radius: 3px;
+            font-size: 0.7vw;
+            margin-left: 0.5vw;
+        }
+        .severity-严重 { background: #ff4444; color: #fff; }
+        .severity-中度 { background: #ff9900; color: #fff; }
+        .severity-轻度 { background: #ffcc00; color: #333; }
+        .severity-无 { background: #00ff00; color: #333; }
+        .model-badge {
+            display: inline-block;
+            padding: 0.2vw 0.5vw;
+            border-radius: 3px;
+            font-size: 0.65vw;
+            margin-left: 0.5vw;
+            background: #667eea;
+            color: #fff;
+        }
+        #top3Results {
+            margin-top: 0.5vw;
+            padding: 0.5vw;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            font-size: 0.7vw;
+        }
+        .top3-item {
+            margin: 0.3vw 0;
+            padding: 0.2vw 0;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+        }
+        .history-item {
+            padding: 0.5vw;
+            margin-bottom: 0.5vw;
+            background: rgba(0, 255, 255, 0.05);
+            border-left: 2px solid #0efcff;
+            border-radius: 3px;
+            font-size: 0.65vw;
+            color: #0efcff;
+        }
+        .history-item:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+        .history-time {
+            color: #999;
+            font-size: 0.6vw;
+        }
+        .history-disease {
+            color: #fff;
+            font-weight: bold;
+            margin: 0.2vw 0;
+        }
+        .history-confidence {
+            color: #0efcff;
+        }
+        #historyList::-webkit-scrollbar {
+            width: 4px;
+        }
+        #historyList::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        #historyList::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.5);
+            border-radius: 2px;
+        }
+        
+        /* 左侧识别结果样式 */
+        .recognition_result {
+            padding: 2vw 1vw;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            margin: 1vw;
+        }
+        .result_header {
+            margin-bottom: 1.5vw;
+        }
+        .disease_name {
+            font-size: 2vw;
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 1vw;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            letter-spacing: 0.2vw;
+        }
+        .confidence_display {
+            font-size: 3.5vw;
+            color: #0efcff;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+            letter-spacing: 0.1vw;
+        }
+        .similarity_info {
+            font-size: 1.2vw;
+            color: #0efcff;
+            margin-top: 1vw;
+            padding: 0.5vw;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .similar_label {
+            color: #999;
+            font-size: 1vw;
+        }
+        .similar_value {
+            color: #0efcff;
+            font-weight: bold;
+            font-size: 1.2vw;
+        }
+        
+        /* 病症症状滚动区域 */
+        .symptoms_scroll {
+            margin: 1.5vw 1vw 1vw 1vw;
+            padding: 1vw;
+            max-height: 12vw;
+            overflow-y: auto;
+            background: rgba(0, 255, 255, 0.08);
+            border-radius: 6px;
+            display: none;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        .symptom_title {
+            font-size: 1.1vw;
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 0.8vw;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+            letter-spacing: 0.1vw;
+        }
+        .symptom_content_scroll {
+            font-size: 0.85vw;
+            color: #0efcff;
+            line-height: 2;
+            text-align: left;
+            padding: 0.5vw;
+        }
+        .symptoms_scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .symptoms_scroll::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .symptoms_scroll::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.5);
+            border-radius: 2px;
+        }
+        
+        /* 预防措施滑动样式 */
+        .prevention_data {
+            padding: 1vw !important;
+            color: #0efcff !important;
+            font-size: 0.7vw !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            height: 80% !important;
+            scroll-behavior: smooth;
+            box-sizing: border-box !important;
+        }
+        .prevention_data::-webkit-scrollbar {
+            width: 4px;
+        }
+        .prevention_data::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .prevention_data::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.5);
+            border-radius: 2px;
+        }
+        
+        /* 历史记录自动滚动 */
+        .history_container {
+            position: relative;
+        }
+        #historyList {
+            animation: none;
+        }
+        #historyList.auto-scroll {
+            animation: scrollHistory 20s linear infinite;
+        }
+        @keyframes scrollHistory {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+        
+        /* 热力图标题间距修复 */
+                #imageHeatmapChart {
+            width: 100% !important;
+            height: 100% !important;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="main">
+        <div class="nav">植物叶片病害识别及预防大数据指挥舱</div>
+        <div class="nav_btn">
+            <div class="btn_left">
+                <a href=""><div class="btn_list listActive">主页</div></a>
+                <a href=""><div class="btn_list">土地流转</div></a>
+                <a href=""><div class="btn_list">空天地</div></a>
+                <a href=""><div class="btn_list">生长监测</div></a>
+            </div>
+            <div class="btn_right">
+                <a href=""><div class="btn_list">生产加工</div></a>
+                <a href=""><div class="btn_list">仓储管理</div></a>
+                <a href=""><div class="btn_list">流通销售</div></a>
+                <a href=""><div class="btn_list">数据中心</div></a>
+            </div>
+        </div>
+        <div class="content">
+            <div class="centerBox">
+                <div class="baseBox centerMainBox1" style="height:70%">
+                    <div class="baseBoxLeft left">
+                        <div class="boxTitle">叶片病害预警</div>
+                        <img src="{{ url_for('static', filename='img/left.png') }}" class="first_border" alt="">
+                        <div class="firstBox">
+                            <!-- 识别结果显示区域 -->
+                            <div class="recognition_result" id="recognitionResult" style="display:none;">
+                                <div class="result_header">
+                                    <div class="disease_name" id="leftDiseaseName">未识别</div>
+                                    <div class="confidence_display" id="leftConfidence">0%</div>
+                                </div>
+                                <div class="similarity_info" id="similarityInfo">
+                                    <span class="similar_label">相似度: </span>
+                                    <span class="similar_value" id="similarValue">0%</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 默认显示 -->
+                            <div class="default_display" id="defaultDisplay">
+                                <div class="pic">
+                                    <img src="{{ url_for('static', filename='img/demo_pic.png') }}" class="first_top1" alt="">
+                                    <img src="{{ url_for('static', filename='img/data_pic.png') }}" class="first_top2" alt="">
+                                </div>
+                                <div class="picText">
+                                    <span>样本图片</span>
+                                    <span class="text_second">叶片病害大数据库</span>
+                                </div>
+                                <div class="voice_animation">
+                                    <canvas id="canvas">Your browser can not support canvas</canvas>
+                                </div>
+                            </div>
+                            
+                            <!-- 病症症状滚动区域 -->
+                            <div class="symptoms_scroll" id="symptomsScroll">
+                                <div class="symptom_title">病症症状</div>
+                                <div class="disease_name_display" id="diseaseNameDisplay" style="color: #ff6b6b; font-size: 0.9vw; font-weight: bold; margin-bottom: 0.5vw; padding: 0.5vw; background: rgba(255,107,107,0.1); border-left: 3px solid #ff6b6b; border-radius: 3px; display: none;">
+                                    识别病害：<span id="diseaseNameText">未识别</span>
+                                </div>
+                                <div class="symptom_content_scroll" id="symptomContentScroll">
+                                    <p>上传图片后显示病症信息...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="baseBoxRight right">
+                        <a class="navLeft" href=""><img src="{{ url_for('static', filename='img/fanhui.png') }}" alt=""></a>
+                        <div class="maps">
+                            <img class="land_level" src="{{ url_for('static', filename='img/landLevel.png') }}" alt="">
+                            <img class="wifi_gif" src="{{ url_for('static', filename='img/wifi.gif') }}">
+                            <img class="sun_pic" src="{{ url_for('static', filename='img/sun.png') }}" alt="">
+                            <img class="wrj_pic" src="{{ url_for('static', filename='img/wrj.png') }}" alt="">
+                            <img class="wind_gif" src="{{ url_for('static', filename='img/wind_shape.gif') }}" alt="">
+                            <img class="plant_pic display_box" src="{{ url_for('static', filename='img/plant.png') }}" alt="">
+                            <div class="windows display_box">
+                                <ul>
+                                    <li>土地信息</li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                </ul>
+                            </div>
+                            <div class="window_two display_box">
+                                <ul>
+                                    <li>刘新武</li>
+                                    <li>年龄：41岁</li>
+                                    <li>农事活动：6次</li>
+                                    <li>信用等级：良好</li>
+                                </ul>
+                            </div>
+                            <div class="window_three display_box">
+                                <ul>
+                                    <li>土壤数据</li>
+                                    <li>湿度:63%</li>
+                                    <li>酸碱度：PH4.8</li>
+                                    <li>肥沃度：56%</li>
+                                </ul>
+                            </div>
+                            <div class="window_four display_box">
+                                <ul>
+                                    <li>气象信息</li>
+                                    <li>温度:19℃</li>
+                                    <li>湿度：52%</li>
+                                    <li>风速：2m/s</li>
+                                    <li>降水：0mm</li>
+                                </ul>
+                            </div>
+                            <div class="window_five display_box">
+                                <ul>
+                                    <li>植被信息</li>
+                                    <li>品种名称:云台山大叶良种</li>
+                                    <li>植株数量：76000株</li>
+                                    <li>所属生长周期：幼年期</li>
+                                    <li>长势情况：良好</li>
+                                </ul>
+                            </div>
+                            <div class="window_six display_box">
+                                <ul>
+                                    <li>设备信息</li>
+                                    <li>设备名称:无人机</li>
+                                    <li>所属人：安化云台八角有限公司</li>
+                                    <li>持续工作：3h</li>
+                                    <li>连接状态：正常</li>
+                                </ul>
+                            </div>
+                            <a href=""><div class="peasant"></div></a>
+                            <div class="land_box1"></div>
+                            <div class="land_box2"></div>
+                            <div class="land_box3"></div>
+                            <div class="land_box4"></div>
+                            <div class="plant"></div>
+                            <div class="soil_data"></div>
+                            <div class="weather_info"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="centerMainBox2" style="width: 75%; height: 36%; position: relative; margin-top: 2vw;">
+                    <div class="uploadContainer" style="position: relative; z-index: 2; margin: 1vw auto; width: 95%; height: calc(100% - 2vw);">
+                        <div class="dropZone" id="dropZone">
+                            <div style="font-size: 1.1vw; color: #0efcff;">拖拽文件至此或点击上传</div>
+                            <button class="uploadBtn" onclick="openFileInput()">点击上传</button>
+                        </div>
+                        <input type="file" id="imageUpload" accept="image/*" style="display:none;">
+                        <div id="preview">
+                            <img id="previewImg" alt="预览图片">
+                        </div>
+                        <div id="result">
+                            <div>
+                                <strong>病害名称：</strong>
+                                <span id="disease">未识别</span>
+                                <span id="severityBadge" class="severity-badge"></span>
+                                <span id="modelBadge" class="model-badge" style="display:none;">AI识别</span>
+                            </div>
+                            <div><strong>植物类型：</strong><span id="plant">-</span></div>
+                            <div><strong>置信度：</strong><span id="confidence">0</span>%</div>
+                            <div><strong>受影响面积：</strong><span id="affectedArea">0</span>%</div>
+                            <div><strong>平均严重度：</strong><span id="avgSeverity">0</span></div>
+                            <div id="top3Results" style="display:none;">
+                                <strong>Top-3预测结果：</strong>
+                                <div id="top3List"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="leftBox right" style="width:22%">
+                <div class="baseBox baseBox1" style="margin-bottom:15px;height:40%">
+                    <img src="{{ url_for('static', filename='img/right.png') }}" class="hardware" alt="">
+                    <div class="csbaseBox1">
+                        <div class="boxTitle">病害区域热力图</div>
+                       <div id="imageHeatmapChart" style="width: 100%; height: 100%; padding: 0; margin: 0;">
+                        </div>
+
+                    </div>
+                </div>
+                <div class="baseBox baseBox2" style="margin-bottom:15px;height:29.5%">
+                    <img src="{{ url_for('static', filename='img/right2.png') }}" alt="">
+                    <div class="boxTitle2">预防措施</div>
+                    <div class="prevention_data">
+                        <div class="prevention_item" style="margin-bottom: 0.8vw; padding: 0.5vw; background: rgba(0,255,255,0.05); border-left: 2px solid #0efcff; border-radius: 4px;">
+                            <div style="color: #fff; font-weight: bold; margin-bottom: 0.3vw;">🌱 农业防治</div>
+                            <div style="line-height: 1.6;">选用抗病品种，合理密植，加强田间管理，及时清除病叶病枝。</div>
+                        </div>
+                        <div class="prevention_item" style="margin-bottom: 0.8vw; padding: 0.5vw; background: rgba(0,255,255,0.05); border-left: 2px solid #0efcff; border-radius: 4px;">
+                            <div style="color: #fff; font-weight: bold; margin-bottom: 0.3vw;">💊 化学防治</div>
+                            <div style="line-height: 1.6;">发病初期喷施多菌灵或甲基托布津，每7-10天一次，连续2-3次。</div>
+                        </div>
+                        <div class="prevention_item" style="margin-bottom: 0.8vw; padding: 0.5vw; background: rgba(0,255,255,0.05); border-left: 2px solid #0efcff; border-radius: 4px;">
+                            <div style="color: #fff; font-weight: bold; margin-bottom: 0.3vw;">🌡️ 环境调控</div>
+                            <div style="line-height: 1.6;">控制湿度在60%以下，保持通风良好，避免高温高湿环境。</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="baseBox baseBox3" style="height:28%">
+                    <img src="{{ url_for('static', filename='img/right3.png') }}" alt="">
+                    <div class="boxTitle2">识别历史记录</div>
+                    <div class="history_container" style="width:100%;overflow:hidden;height: 75%; padding: 0.5vw;">
+                        <div style="text-align: right; margin-bottom: 0.3vw;">
+                            <button onclick="clearHistory()" style="background: rgba(255,68,68,0.8); color: #fff; border: none; padding: 0.3vw 0.6vw; border-radius: 3px; cursor: pointer; font-size: 0.6vw;">清空记录</button>
+                        </div>
+                        <div id="historyList" style="height: calc(100% - 2vw); overflow-y: auto;">
+                            <div style="text-align: center; color: #0efcff; font-size: 0.7vw; padding-top: 2vw;">
+                                暂无识别记录
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/echarts.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataScoll.js') }}"></script>
+    <script>
+        // 加载历史记录
+        function loadHistory() {
+            fetch('/api/history')
+                .then(response => response.json())
+                .then(data => {
+                    const historyList = document.getElementById('historyList');
+                    if (data.history && data.history.length > 0) {
+                        let html = '';
+                        // 复制一份用于无缝滚动
+                        const historyItems = data.history.concat(data.history);
+                        historyItems.forEach(item => {
+                            html += `
+                                <div class="history-item">
+                                    <div class="history-time">${item.timestamp}</div>
+                                    <div class="history-disease">${item.disease}</div>
+                                    <div>植物: ${item.plant} | 置信度: <span class="history-confidence">${item.confidence}%</span></div>
+                                    <div>严重度: ${item.severity} | 方法: ${item.method}</div>
+                                </div>
+                            `;
+                        });
+                        historyList.innerHTML = html;
+                        
+                        // 启用自动滚动（如果记录超过3条）
+                        if (data.history.length > 3) {
+                            historyList.classList.add('auto-scroll');
+                            
+                            // 鼠标悬停时暂停滚动
+                            historyList.addEventListener('mouseenter', function() {
+                                this.style.animationPlayState = 'paused';
+                            });
+                            historyList.addEventListener('mouseleave', function() {
+                                this.style.animationPlayState = 'running';
+                            });
+                        }
+                    } else {
+                        historyList.innerHTML = '<div style="text-align: center; color: #0efcff; font-size: 0.7vw; padding-top: 2vw;">暂无识别记录</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('加载历史记录失败:', error);
+                });
+        }
+
+        // 清空历史记录
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？')) {
+                fetch('/api/history/clear', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const historyList = document.getElementById('historyList');
+                        historyList.classList.remove('auto-scroll');
+                        loadHistory();
+                        alert('历史记录已清空');
+                    }
+                })
+                .catch(error => {
+                    console.error('清空历史记录失败:', error);
+                });
+            }
+        }
+
+        // 页面加载时加载历史记录
+        window.addEventListener('load', function() {
+            loadHistory();
+        });
+    </script>
+
+    <script>
+        var doublePI = Math.PI * 2;
+        var canvas;
+        var ctx;
+        var halfCanvasHeight = 100;
+        var horizontalMargin = 150;
+        var attenuationCoefficient = 2;
+        var halfWaveCount = 20;
+        var amplitudePercentage = 0.3;
+        var radianStep = 0.4;
+        var radianOffset = 0;
+        var canvasWidth;
+
+        function init() {
+            canvas = document.getElementById("canvas");
+            ctx = canvas.getContext("2d");
+            window.addEventListener("resize", onResize);
+            canvas.height = halfCanvasHeight * 2;
+            onResize();
+            loop();
+        }
+
+        function onResize() {
+            canvasWidth = canvas.width = window.innerWidth - horizontalMargin;
+        }
+
+        function calcAttenuation(x) {
+            return Math.pow(4 * attenuationCoefficient / (4 * attenuationCoefficient + Math.pow(x, 4)), 2 * attenuationCoefficient);
+        }
+
+        function drawAcousticWave(heightPercentage, alpha, lineWidth) {
+            ctx.strokeStyle = "white";
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = lineWidth || 1;
+            ctx.beginPath();
+            ctx.moveTo(0, halfCanvasHeight);
+            for (var i = -attenuationCoefficient; i <= attenuationCoefficient; i += 0.01) {
+                var x = canvasWidth * (i + attenuationCoefficient) / (2 * attenuationCoefficient);
+                var y = halfCanvasHeight + halfCanvasHeight * amplitudePercentage * calcAttenuation(i) * heightPercentage * Math.sin(halfWaveCount * i + radianOffset);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        function loop() {
+            radianOffset = (radianOffset + radianStep) % doublePI;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawAcousticWave(1, 1, 2);
+            for (var i = 2; i < 4; i++) {
+                var reciprocal = 1 / i;
+                drawAcousticWave(reciprocal, reciprocal / 4);
+                drawAcousticWave(-reciprocal, reciprocal / 4);
+            }
+            requestAnimationFrame(loop);
+        }
+
+        
+
+      
+      // ========== 在 init(); 之后替换所有上传相关代码 ==========
+
+        init();
+
+        // ========== 图片上传功能 - 完整修复版 ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✓ DOM加载完成，初始化上传功能');
+            
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('imageUpload');
+            const previewImg = document.getElementById('previewImg');
+            const result = document.getElementById('result');
+            const diseaseEl = document.getElementById('disease');
+            const plantEl = document.getElementById('plant');
+            const confidenceEl = document.getElementById('confidence');
+            const severityBadgeEl = document.getElementById('severityBadge');
+            const modelBadgeEl = document.getElementById('modelBadge');
+            const affectedAreaEl = document.getElementById('affectedArea');
+            const avgSeverityEl = document.getElementById('avgSeverity');
+            const top3ResultsEl = document.getElementById('top3Results');
+            const top3ListEl = document.getElementById('top3List');
+            
+            if (!dropZone || !fileInput) {
+                console.error('✗ 上传元素未找到');
+                return;
+            }
+            
+            console.log('✓ 上传元素已找到');
+
+            // 拖拽事件
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight() {
+                dropZone.style.backgroundColor = 'rgba(0,255,255,0.2)';
+            }
+
+            function unhighlight() {
+                dropZone.style.backgroundColor = 'rgba(0,255,255,0.1)';
+            }
+
+            dropZone.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    handleFile(files[0]);
+                }
+            }
+
+            // 全局函数，供按钮onclick调用
+            window.openFileInput = function() {
+                console.log('点击上传按钮');
+                fileInput.click();
+            };
+
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                console.log('文件已选择:', file.name);
+                handleFile(file);
+            });
+
+            function handleFile(file) {
+                console.log('开始处理文件:', file.name);
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    previewImg.src = event.target.result;
+                    document.getElementById('preview').style.display = 'block';
+                    previewImg.style.display = 'block';
+                    console.log('✓ 图片预览已显示');
+                };
+                reader.readAsDataURL(file);
+
+                console.log('发送请求到后端...');
+                fetch('/api/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    console.log('收到响应:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('识别结果:', data);
+                    console.log('热力图数据:', data.image_heatmap);
+                    console.log('热力图数据类型:', typeof data.image_heatmap);
+                    console.log('热力图数据长度:', data.image_heatmap ? data.image_heatmap.length : 'undefined');
+                    
+                    // 中间区域结果显示
+                    diseaseEl.textContent = data.disease || '未知';
+                    plantEl.textContent = data.plant || '-';
+                    confidenceEl.textContent = data.confidence || 0;
+                    
+                    // 显示识别结果区域
+                    result.style.display = 'block';
+                    
+                    // 显示模型状态
+                    if (data.model_loaded) {
+                        modelBadgeEl.style.display = 'inline-block';
+                        if (data.method && data.method.includes('集成')) {
+                            modelBadgeEl.textContent = '双模型集成';
+                            modelBadgeEl.style.background = '#667eea';
+                        } else {
+                            modelBadgeEl.textContent = 'AI识别';
+                            modelBadgeEl.style.background = '#667eea';
+                        }
+                    } else {
+                        modelBadgeEl.style.display = 'inline-block';
+                        modelBadgeEl.textContent = '后备方案';
+                        modelBadgeEl.style.background = '#ff9900';
+                    }
+                    
+                    // 显示严重程度标签
+                    if (data.severity) {
+                        severityBadgeEl.textContent = data.severity;
+                        severityBadgeEl.className = 'severity-badge severity-' + data.severity;
+                        severityBadgeEl.style.display = 'inline-block';
+                    }
+                    
+                    // 显示统计数据
+                    if (data.statistics) {
+                        affectedAreaEl.textContent = data.statistics.affected_area || 0;
+                        avgSeverityEl.textContent = data.statistics.avg_severity || 0;
+                    }
+                    
+                    // 显示Top-3结果
+                    if (data.top3 && data.top3.length > 0) {
+                        top3ResultsEl.style.display = 'block';
+                        let top3Html = '';
+                        data.top3.forEach((item, index) => {
+                            const diseaseName = item.class.split('___').pop().replace(/_/g, ' ');
+                            top3Html += `<div class="top3-item">${index + 1}. ${diseaseName}: ${item.probability}%</div>`;
+                        });
+                        top3ListEl.innerHTML = top3Html;
+                    }
+                    
+                    // 更新左侧识别结果
+                    updateLeftPanelResults(data);
+                    
+                    // 更新预防措施
+                    if (data.prevention) {
+                        updatePreventionMeasures(data.prevention);
+                    }
+                    
+                    // 更新热力图
+                    console.log('准备调用updateImageHeatmap');
+                    console.log('data.image_heatmap存在:', !!data.image_heatmap);
+                    if (data.image_heatmap) {
+                        console.log('调用updateImageHeatmap，数据长度:', data.image_heatmap.length);
+                        updateImageHeatmap(data.image_heatmap);
+                    } else {
+                        console.error('✗ 后端未返回image_heatmap数据');
+                    }
+                    
+                    // 刷新历史记录
+                    loadHistory();
+                    
+                    console.log('✓ 所有数据已更新');
+                })
+                .catch(error => {
+                    console.error('✗ 预测失败:', error);
+                    alert('识别失败: ' + error.message);
+                });
+            }
+            
+            console.log('✓ 上传功能初始化完成');
+        });
+
+                
+               
+
+
+
+        function updateLeftPanelResults(data) {
+            // 隐藏默认显示
+            const defaultDisplay = document.getElementById('defaultDisplay');
+            if (defaultDisplay) {
+                // defaultDisplay.style.display = 'none';  // 保持默认显示
+            }
+            
+            // 显示识别结果
+            const recognitionResult = document.getElementById('recognitionResult');
+            const leftDiseaseName = document.getElementById('leftDiseaseName');
+            const leftConfidence = document.getElementById('leftConfidence');
+            const similarValue = document.getElementById('similarValue');
+            
+            if (recognitionResult && leftDiseaseName && leftConfidence && similarValue) {
+                // 显示中文病害名称
+                leftDiseaseName.textContent = data.disease || '未识别';
+                leftConfidence.textContent = (data.confidence || 0) + '%';
+                similarValue.textContent = (data.confidence || 0) + '%';
+                // recognitionResult.style.display = 'block';  // 隐藏左侧识别结果
+            }
+            
+            // 显示病症症状
+            const symptomsScroll = document.getElementById('symptomsScroll');
+            const symptomContentScroll = document.getElementById('symptomContentScroll');
+            const diseaseNameDisplay = document.getElementById('diseaseNameDisplay');
+            const diseaseNameText = document.getElementById('diseaseNameText');
+            
+            if (symptomsScroll && symptomContentScroll && data.symptoms) {
+                // 显示病害名称
+                if (diseaseNameDisplay && diseaseNameText && data.disease) {
+                    diseaseNameText.textContent = data.disease;
+                    diseaseNameDisplay.style.display = 'block';
+                }
+                
+                // 显示症状内容
+                symptomContentScroll.innerHTML = `<p>${data.symptoms}</p>`;
+                symptomsScroll.style.display = 'block';
+            }
+        }
+
+        function updatePreventionMeasures(prevention) {
+            const preventionContainer = document.querySelector('.prevention_data');
+            if (preventionContainer && prevention) {
+                let html = '';
+                if (prevention.agricultural) {
+                    html += `<div class="prevention_item" style="margin-bottom: 0.8vw; padding: 0.5vw; background: rgba(0,255,255,0.05); border-left: 2px solid #0efcff; border-radius: 4px;">
+                        <div style="color: #fff; font-weight: bold; margin-bottom: 0.3vw;">🌱 农业防治</div>
+                        <div style="line-height: 1.6;">${prevention.agricultural}</div>
+                    </div>`;
+                }
+                if (prevention.chemical) {
+                    html += `<div class="prevention_item" style="margin-bottom: 0.8vw; padding: 0.5vw; background: rgba(0,255,255,0.05); border-left: 2px solid #0efcff; border-radius: 4px;">
+                        <div style="color: #fff; font-weight: bold; margin-bottom: 0.3vw;">💊 化学防治</div>
+                        <div style="line-height: 1.6;">${prevention.chemical}</div>
+                    </div>`;
+                }
+                if (prevention.environmental) {
+                    html += `<div class="prevention_item" style="margin-bottom: 0.8vw; padding: 0.5vw; background: rgba(0,255,255,0.05); border-left: 2px solid #0efcff; border-radius: 4px;">
+                        <div style="color: #fff; font-weight: bold; margin-bottom: 0.3vw;">🌡️ 环境调控</div>
+                        <div style="line-height: 1.6;">${prevention.environmental}</div>
+                    </div>`;
+                }
+                preventionContainer.innerHTML = html;
+            }
+        }
+
+                // 热力图初始化 - 延迟到页面加载完成
+        var imageHeatmapChart = null;
+
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                const container = document.getElementById('imageHeatmapChart');
+                console.log('初始化热力图容器...');
+                console.log('容器存在:', !!container);
+                console.log('ECharts加载:', typeof echarts !== 'undefined');
+                
+                if (container) {
+                    console.log('容器尺寸:', container.offsetWidth, 'x', container.offsetHeight);
+                }
+                
+                if (container && typeof echarts !== 'undefined') {
+                    imageHeatmapChart = echarts.init(container);
+                    console.log('✓ 热力图初始化成功');
+                    console.log('图表实例:', imageHeatmapChart);
+                    
+                    // 立即resize确保尺寸正确
+                    imageHeatmapChart.resize();
+                } else {
+                    console.error('✗ 热力图初始化失败');
+                }
+            }, 500);
+        });
+        
+        function updateImageHeatmap(data) {
+            console.log('========== updateImageHeatmap被调用 ==========');
+            console.log('数据点数:', data ? data.length : 0);
+            console.log('数据示例:', data ? data.slice(0, 3) : 'null');
+            
+            if (!data || data.length === 0) {
+                console.error('✗ 热力图数据为空');
+                return;
+            }
+            
+            // 检查容器
+            const container = document.getElementById('imageHeatmapChart');
+            console.log('容器存在:', !!container);
+            if (container) {
+                console.log('容器宽度:', container.offsetWidth);
+                console.log('容器高度:', container.offsetHeight);
+            }
+            
+            // 确保图表已初始化
+            console.log('imageHeatmapChart已初始化:', !!imageHeatmapChart);
+            if (!imageHeatmapChart) {
+                const container = document.getElementById('imageHeatmapChart');
+                if (container && typeof echarts !== 'undefined') {
+                    imageHeatmapChart = echarts.init(container);
+                    console.log('重新初始化热力图');
+                } else {
+                    console.error('✗ 找不到热力图容器或ECharts未加载');
+                    return;
+                }
+            }
+            
+            const option = {
+                title: {
+                    text: '病害严重程度分布',
+                    left: 'center',
+                    top: '1%',
+                    textStyle: {
+                        color: '#0efcff',
+                        fontSize: 11
+                    }
+                },
+                tooltip: {
+                    position: 'top',
+                    formatter: function(params) {
+                        const severity = params.data[2];
+                        let level = '正常';
+                        if (severity > 70) level = '严重';
+                        else if (severity > 40) level = '中度';
+                        else if (severity > 20) level = '轻度';
+                        return '严重度: ' + severity + '<br/>等级: ' + level;
+                    }
+                },
+                grid: {
+                    left: '5%',
+                    right: '5%',
+                    top: '18%',
+                    bottom: '20%',
+                    containLabel: false
+                },
+                xAxis: {
+                    type: 'category',
+                    data: Array.from({length: 15}, (_, i) => i),
+                    splitArea: { show: false },
+                    axisLabel: { show: false },
+                    axisTick: { show: false },
+                    axisLine: { show: false }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: Array.from({length: 15}, (_, i) => i),
+                    splitArea: { show: false },
+                    axisLabel: { show: false },
+                    axisTick: { show: false },
+                    axisLine: { show: false }
+                },
+                visualMap: {
+                    min: 0,
+                    max: 100,
+                    calculable: true,
+                    orient: 'horizontal',
+                    left: 'center',
+                    bottom: '1%',
+                    textStyle: { color: '#0efcff', fontSize: 8 },
+                    inRange: {
+                        color: ['#00ff00', '#7fff00', '#ffff00', '#ff9900', '#ff4444', '#cc0000']
+                    },
+                    text: ['严重', '正常'],
+                    itemWidth: 12,
+                    itemHeight: 6
+                },
+                series: [{
+                    name: '病害分布',
+                    type: 'heatmap',
+                    data: data,
+                    label: { show: false },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)',
+                            borderColor: '#0efcff',
+                            borderWidth: 2
+                        }
+                    },
+                    itemStyle: {
+                        borderColor: 'rgba(0, 0, 0, 0.2)',
+                        borderWidth: 1
+                    }
+                }]
+            };
+            
+            imageHeatmapChart.setOption(option, true);
+            
+            // 强制resize确保图表正确渲染
+            setTimeout(function() {
+                if (imageHeatmapChart) {
+                    imageHeatmapChart.resize();
+                    console.log('✓ 热力图resize完成');
+                }
+            }, 100);
+            
+            console.log('✓ 热力图setOption完成');
+            console.log('✓ 热力图应该已显示');
+            console.log('========================================');
+        }
+
+        window.addEventListener('resize', function() {
+            if (imageHeatmapChart) {
+                imageHeatmapChart.resize();
+            }
+        });
+</script>

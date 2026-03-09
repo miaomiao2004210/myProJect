@@ -1,0 +1,47 @@
+[
+  {
+    "timestamp": "2026-03-03 11:36:40",
+    "filename": "cherry_healthy_cherryhealthyJRHL3921.jpg",
+    "disease": "樱桃健康叶片",
+    "plant": "樱桃",
+    "confidence": 99.96,
+    "severity": "无",
+    "method": "双模型集成"
+  },
+  {
+    "timestamp": "2026-03-03 11:31:39",
+    "filename": "jpg",
+    "disease": "草莓叶枯病",
+    "plant": "草莓",
+    "confidence": 80.45,
+    "severity": "中度",
+    "method": "双模型集成"
+  },
+  {
+    "timestamp": "2026-03-03 11:12:13",
+    "filename": "grape_leaf_blight_grapeleafblightFAML_Blight0769.jpg",
+    "disease": "葡萄叶枯病",
+    "plant": "葡萄",
+    "confidence": 99.96,
+    "severity": "中度",
+    "method": "双模型集成"
+  },
+  {
+    "timestamp": "2026-03-02 23:01:50",
+    "filename": "cherry_healthy_cherryhealthyJRHL3922.jpg",
+    "disease": "樱桃健康叶片",
+    "plant": "樱桃",
+    "confidence": 100.0,
+    "severity": "无",
+    "method": "双模型集成"
+  },
+  {
+    "timestamp": "2026-03-02 23:01:27",
+    "filename": "grape_esca_grapeescaFAMB_Msls0829.jpg",
+    "disease": "葡萄埃斯卡病",
+    "plant": "葡萄",
+    "confidence": 100.0,
+    "severity": "严重",
+    "method": "双模型集成"
+  }
+]
