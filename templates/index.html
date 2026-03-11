@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh">
 <head>
     <meta charset="utf-8">
@@ -90,6 +90,7 @@
             position: absolute;
             width: 100%;
             height: 100%;
+            pointer-events: none;
         }
         .csbaseBox1 {
             position: relative;
@@ -262,6 +263,66 @@
             border-radius: 4px;
             font-size: 0.7vw;
         }
+        .ablation-panel {
+            margin-top: 0.7vw;
+            padding: 0.6vw;
+            background: rgba(0, 255, 255, 0.08);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 6px;
+            display: none;
+        }
+        .ablation-title {
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 0.45vw;
+            font-size: 0.72vw;
+        }
+        .ablation-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.55vw;
+        }
+        .ablation-card {
+            padding: 0.55vw;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(0, 255, 255, 0.14);
+            border-radius: 4px;
+        }
+        .ablation-card.after-se {
+            border-color: rgba(0, 255, 153, 0.24);
+            background: rgba(0, 255, 153, 0.08);
+        }
+        .ablation-card-title {
+            color: #fff;
+            font-size: 0.68vw;
+            font-weight: bold;
+            margin-bottom: 0.35vw;
+        }
+        .ablation-metric {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.6vw;
+            font-size: 0.64vw;
+            line-height: 1.7;
+            color: #bff9ff;
+        }
+        .ablation-delta {
+            margin-top: 0.5vw;
+            padding-top: 0.45vw;
+            border-top: 1px solid rgba(0, 255, 255, 0.12);
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.35vw;
+        }
+        .ablation-delta-item {
+            padding: 0.35vw;
+            border-radius: 4px;
+            background: rgba(0, 255, 153, 0.08);
+            text-align: center;
+            color: #c9ffe9;
+            font-size: 0.62vw;
+            line-height: 1.5;
+        }
         .top3-item {
             margin: 0.3vw 0;
             padding: 0.2vw 0;
@@ -349,7 +410,7 @@
         
         /* 病症症状滚动区域 */
         .symptoms_scroll {
-            margin: 1.5vw 1vw 1vw 1vw;
+            margin: 0.9vw 1vw 1vw 1vw;
             padding: 1vw;
             max-height: 12vw;
             overflow-y: auto;
@@ -362,7 +423,7 @@
             font-size: 1.1vw;
             color: #fff;
             font-weight: bold;
-            margin-bottom: 0.8vw;
+            margin-bottom: 0.55vw;
             text-align: center;
             text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
             letter-spacing: 0.1vw;
@@ -387,17 +448,31 @@
         
         /* 预防措施滑动样式 */
         .prevention_data {
+            position: relative;
+            z-index: 2;
             padding: 1vw !important;
             color: #0efcff !important;
             font-size: 0.7vw !important;
+            display: block !important;
             overflow-x: hidden !important;
             overflow-y: auto !important;
-            height: 80% !important;
+            height: calc(100% - 3.2vw) !important;
+            max-height: calc(100% - 3.2vw) !important;
             scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
             box-sizing: border-box !important;
+        }
+        .prevention_data .prevention_item {
+            display: block;
+            width: 100%;
+            margin-bottom: 0.8vw !important;
+        }
+        .prevention_data .prevention_item:last-child {
+            margin-bottom: 0 !important;
         }
         .prevention_data::-webkit-scrollbar {
             width: 4px;
+            height: 4px;
         }
         .prevention_data::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.3);
@@ -424,10 +499,10 @@
         
         /* 热力图标题间距修复 */
                 #imageHeatmapChart {
-            width: 100% !important;
-            height: 100% !important;
+            width: calc(100% - 1.2vw) !important;
+            height: calc(100% - 3.6vw) !important;
             padding: 0;
-            margin: 0;
+            margin: 1.45vw 0.6vw 1.15vw;
             box-sizing: border-box;
         }
     </style>
@@ -592,6 +667,20 @@
                             <div id="top3Results" style="display:none;">
                                 <strong>Top-3预测结果：</strong>
                                 <div id="top3List"></div>
+                            </div>
+                            <div id="ablationPanel" class="ablation-panel">
+                                <div class="ablation-title">验证集消融实验指标</div>
+                                <div class="ablation-grid">
+                                    <div class="ablation-card">
+                                        <div class="ablation-card-title" id="beforeSeTitle">ResNet18-v1.0</div>
+                                        <div id="beforeSeMetrics"></div>
+                                    </div>
+                                    <div class="ablation-card after-se">
+                                        <div class="ablation-card-title" id="afterSeTitle">ResNet18-v2.0 (+SE)</div>
+                                        <div id="afterSeMetrics"></div>
+                                    </div>
+                                </div>
+                                <div id="ablationDelta" class="ablation-delta"></div>
                             </div>
                         </div>
                     </div>
@@ -798,6 +887,12 @@
             const avgSeverityEl = document.getElementById('avgSeverity');
             const top3ResultsEl = document.getElementById('top3Results');
             const top3ListEl = document.getElementById('top3List');
+            const ablationPanelEl = document.getElementById('ablationPanel');
+            const beforeSeTitleEl = document.getElementById('beforeSeTitle');
+            const afterSeTitleEl = document.getElementById('afterSeTitle');
+            const beforeSeMetricsEl = document.getElementById('beforeSeMetrics');
+            const afterSeMetricsEl = document.getElementById('afterSeMetrics');
+            const ablationDeltaEl = document.getElementById('ablationDelta');
             
             if (!dropZone || !fileInput) {
                 console.error('✗ 上传元素未找到');
@@ -932,6 +1027,12 @@
                         });
                         top3ListEl.innerHTML = top3Html;
                     }
+
+                    if (data.ablation_metrics && data.ablation_metrics.before_se && data.ablation_metrics.after_se) {
+                        renderAblationMetrics(data.ablation_metrics);
+                    } else if (ablationPanelEl) {
+                        ablationPanelEl.style.display = 'none';
+                    }
                     
                     // 更新左侧识别结果
                     updateLeftPanelResults(data);
@@ -1008,6 +1109,49 @@
                 symptomContentScroll.innerHTML = `<p>${data.symptoms}</p>`;
                 symptomsScroll.style.display = 'block';
             }
+        }
+
+
+        function renderMetricRows(metrics) {
+            return [
+                ['Accuracy', metrics.accuracy + '%'],
+                ['F1', metrics.f1],
+                ['Precision', metrics.precision],
+                ['Recall', metrics.recall]
+            ].map(item => `<div class="ablation-metric"><span>${item[0]}</span><strong>${item[1]}</strong></div>`).join('');
+        }
+
+        function renderAblationMetrics(metrics) {
+            const ablationPanelEl = document.getElementById('ablationPanel');
+            const beforeSeTitleEl = document.getElementById('beforeSeTitle');
+            const afterSeTitleEl = document.getElementById('afterSeTitle');
+            const beforeSeMetricsEl = document.getElementById('beforeSeMetrics');
+            const afterSeMetricsEl = document.getElementById('afterSeMetrics');
+            const ablationDeltaEl = document.getElementById('ablationDelta');
+
+            if (!ablationPanelEl || !beforeSeTitleEl || !afterSeTitleEl || !beforeSeMetricsEl || !afterSeMetricsEl || !ablationDeltaEl) {
+                return;
+            }
+
+            if (!metrics || !metrics.before_se || !metrics.after_se) {
+                ablationPanelEl.style.display = 'none';
+                return;
+            }
+
+            beforeSeTitleEl.textContent = metrics.before_se.model || '加入SE前';
+            afterSeTitleEl.textContent = metrics.after_se.model || '??SE?';
+            beforeSeMetricsEl.innerHTML = renderMetricRows(metrics.before_se);
+            afterSeMetricsEl.innerHTML = renderMetricRows(metrics.after_se);
+
+            const delta = metrics.delta || {};
+            const deltaItems = [
+                ['Acc', (delta.accuracy > 0 ? '+' : '') + (Number(delta.accuracy || 0)).toFixed(2) + '%'],
+                ['F1', (delta.f1 > 0 ? '+' : '') + (Number(delta.f1 || 0)).toFixed(4)],
+                ['Prec', (delta.precision > 0 ? '+' : '') + (Number(delta.precision || 0)).toFixed(4)],
+                ['Recall', (delta.recall > 0 ? '+' : '') + (Number(delta.recall || 0)).toFixed(4)]
+            ];
+            ablationDeltaEl.innerHTML = deltaItems.map(item => `<div class="ablation-delta-item"><div>${item[0]}</div><strong>${item[1]}</strong></div>`).join('');
+            ablationPanelEl.style.display = 'block';
         }
 
         function updatePreventionMeasures(prevention) {
@@ -1098,14 +1242,22 @@
                 title: {
                     text: '病害严重程度分布',
                     left: 'center',
-                    top: '1%',
+                    top: '2%',
                     textStyle: {
                         color: '#0efcff',
-                        fontSize: 11
+                        fontSize: 13,
+                        fontWeight: 'normal',
+                        lineHeight: 18,
+                        padding: [2, 0, 6, 0]
                     }
                 },
                 tooltip: {
                     position: 'top',
+                    padding: [8, 10],
+                    textStyle: {
+                        fontSize: 11,
+                        lineHeight: 18
+                    },
                     formatter: function(params) {
                         const severity = params.data[2];
                         let level = '正常';
@@ -1116,10 +1268,10 @@
                     }
                 },
                 grid: {
-                    left: '5%',
-                    right: '5%',
-                    top: '18%',
-                    bottom: '20%',
+                    left: '4%',
+                    right: '4%',
+                    top: '24%',
+                    bottom: '27%',
                     containLabel: false
                 },
                 xAxis: {
@@ -1144,14 +1296,16 @@
                     calculable: true,
                     orient: 'horizontal',
                     left: 'center',
-                    bottom: '1%',
-                    textStyle: { color: '#0efcff', fontSize: 8 },
+                    bottom: '4%',
+                    textGap: 10,
+                    itemGap: 12,
+                    textStyle: { color: '#0efcff', fontSize: 10, lineHeight: 16 },
                     inRange: {
                         color: ['#00ff00', '#7fff00', '#ffff00', '#ff9900', '#ff4444', '#cc0000']
                     },
                     text: ['严重', '正常'],
-                    itemWidth: 12,
-                    itemHeight: 6
+                    itemWidth: 16,
+                    itemHeight: 8
                 },
                 series: [{
                     name: '病害分布',
@@ -1172,7 +1326,7 @@
                     }
                 }]
             };
-            
+
             imageHeatmapChart.setOption(option, true);
             
             // 强制resize确保图表正确渲染

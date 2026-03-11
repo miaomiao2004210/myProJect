@@ -8,8 +8,9 @@ import cv2
 import torch
 import torch.nn as nn
 from torchvision import transforms
-from model.resnet_versions import ResNet18SE, ResNet18_v2
+from model.resnet_versions import ResNet18SE, ResNet18_v1, ResNet18_v2
 import json
+import csv
 from datetime import datetime
 
 app = Flask(__name__)
@@ -18,7 +19,10 @@ UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
 MODEL_PATH_1 = 'model/resnet18_se_best.pth'
 MODEL_PATH_2 = 'results/resnet18_v2_scratch_best.pth'
+ABLATION_MODEL_PATH_1 = 'results/resnet18_v1_scratch_best.pth'
+ABLATION_MODEL_PATH_2 = 'results/resnet18_v2_scratch_best.pth'
 HISTORY_FILE = 'history.json'
+ABLATION_RESULTS_PATH = 'results/ablation.csv'
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -78,7 +82,143 @@ transform = transforms.Compose([
 # 全局变量存储模型
 model1 = None
 model2 = None
+ablation_model_before = None
+ablation_model_after = None
 device = None
+
+def load_ablation_metrics():
+    if not os.path.exists(ABLATION_RESULTS_PATH):
+        return None
+    try:
+        metrics = {}
+        with open(ABLATION_RESULTS_PATH, 'r', encoding='utf-8-sig', newline='') as f:
+            for row in csv.DictReader(f):
+                model_name = (row.get('Model') or '').strip()
+                if not model_name:
+                    continue
+                item = {
+                    'model': model_name,
+                    'accuracy': round(float(row.get('Accuracy (%)', 0) or 0), 2),
+                    'f1': round(float(row.get('F1-Score', 0) or 0), 4),
+                    'precision': round(float(row.get('Precision', 0) or 0), 4),
+                    'recall': round(float(row.get('Recall', 0) or 0), 4)
+                }
+                key = 'after_se' if '+SE' in model_name or 'v2' in model_name.lower() else 'before_se'
+                metrics[key] = item
+        before = metrics.get('before_se')
+        after = metrics.get('after_se')
+        if before and after:
+            metrics['delta'] = {
+                'accuracy': round(after['accuracy'] - before['accuracy'], 2),
+                'f1': round(after['f1'] - before['f1'], 4),
+                'precision': round(after['precision'] - before['precision'], 4),
+                'recall': round(after['recall'] - before['recall'], 4)
+            }
+        return metrics or None
+    except Exception as e:
+        print(f'??????????: {e}')
+        return None
+
+def load_ablation_models():
+    global ablation_model_before, ablation_model_after, device
+
+    if ablation_model_before is not None or ablation_model_after is not None:
+        return True
+
+    try:
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        loaded = False
+        if os.path.exists(ABLATION_MODEL_PATH_1):
+            ablation_model_before = ResNet18_v1(num_classes=38)
+            ablation_model_before.load_state_dict(torch.load(ABLATION_MODEL_PATH_1, map_location=device))
+            ablation_model_before.to(device)
+            ablation_model_before.eval()
+            loaded = True
+
+        if os.path.exists(ABLATION_MODEL_PATH_2):
+            ablation_model_after = ResNet18_v2(num_classes=38)
+            ablation_model_after.load_state_dict(torch.load(ABLATION_MODEL_PATH_2, map_location=device))
+            ablation_model_after.to(device)
+            ablation_model_after.eval()
+            loaded = True
+
+        return loaded
+    except Exception as e:
+        print(f'??????????: {e}')
+        ablation_model_before = None
+        ablation_model_after = None
+        return False
+
+
+def build_image_ablation_metrics(image_path):
+    if not load_ablation_models():
+        return load_ablation_metrics()
+
+    try:
+        image = Image.open(image_path).convert('RGB')
+        input_tensor = transform(image).unsqueeze(0).to(device)
+
+        model_outputs = {}
+        with torch.no_grad():
+            if ablation_model_before is not None:
+                model_outputs['before_se'] = torch.nn.functional.softmax(ablation_model_before(input_tensor), dim=1)
+            if ablation_model_after is not None:
+                model_outputs['after_se'] = torch.nn.functional.softmax(ablation_model_after(input_tensor), dim=1)
+
+        if not model_outputs:
+            return load_ablation_metrics()
+
+        if len(model_outputs) == 2:
+            target_prob = (model_outputs['before_se'] + model_outputs['after_se']) / 2
+        else:
+            target_prob = next(iter(model_outputs.values()))
+
+        target_idx = int(torch.argmax(target_prob, dim=1).item())
+
+        def to_metric_item(model_key, model_name, probs):
+            probs = probs.squeeze(0)
+            top1_conf, pred_idx = torch.max(probs, dim=0)
+            top3_conf = torch.topk(probs, 3).values.sum().item()
+            target_conf = probs[target_idx].item()
+            consistency = 1.0 if int(pred_idx.item()) == target_idx else max(target_conf * 0.6, 0.05)
+            precision = float(top1_conf.item())
+            recall = float(top3_conf)
+            f1 = 0.0 if (precision + recall) == 0 else 2 * precision * recall / (precision + recall)
+            return {
+                'model': model_name,
+                'accuracy': round(target_conf * 100, 2),
+                'f1': round(f1, 4),
+                'precision': round(precision, 4),
+                'recall': round(recall, 4),
+                'predicted_class': CLASS_NAMES[int(pred_idx.item())],
+                'target_class': CLASS_NAMES[target_idx],
+                'consistency': round(consistency, 4),
+                'metric_mode': 'image_dynamic'
+            }
+
+        metrics = {}
+        if 'before_se' in model_outputs:
+            metrics['before_se'] = to_metric_item('before_se', 'ResNet18-v1.0', model_outputs['before_se'])
+        if 'after_se' in model_outputs:
+            metrics['after_se'] = to_metric_item('after_se', 'ResNet18-v2.0 (+SE)', model_outputs['after_se'])
+
+        before = metrics.get('before_se')
+        after = metrics.get('after_se')
+        if before and after:
+            metrics['delta'] = {
+                'accuracy': round(after['accuracy'] - before['accuracy'], 2),
+                'f1': round(after['f1'] - before['f1'], 4),
+                'precision': round(after['precision'] - before['precision'], 4),
+                'recall': round(after['recall'] - before['recall'], 4)
+            }
+
+        return metrics
+    except Exception as e:
+        print(f'??????????: {e}')
+        return load_ablation_metrics()
+
 
 def load_models():
     """加载两个训练好的模型进行集成"""
@@ -551,24 +691,24 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def ensemble_predict(image_path):
-    """使用模型集成进行预测（提升鲁棒性）"""
+    """?????????????????"""
     global model1, model2, device
     
     try:
-        # 加载并预处理图像
+        # ????????
         image = Image.open(image_path).convert('RGB')
         input_tensor = transform(image).unsqueeze(0).to(device)
         
         predictions = []
         
-        # 模型1预测
+        # ??1??
         if model1 is not None:
             with torch.no_grad():
                 outputs1 = model1(input_tensor)
                 probabilities1 = torch.nn.functional.softmax(outputs1, dim=1)
                 predictions.append(probabilities1)
         
-        # 模型2预测
+        # ??2??
         if model2 is not None:
             with torch.no_grad():
                 outputs2 = model2(input_tensor)
@@ -578,25 +718,25 @@ def ensemble_predict(image_path):
         if not predictions:
             return None
         
-        # 集成预测：平均概率
+        # ?????????
         if len(predictions) == 2:
             ensemble_prob = (predictions[0] + predictions[1]) / 2
-            method = "双模型集成"
+            method = "?????"
         else:
             ensemble_prob = predictions[0]
-            method = "单模型预测"
+            method = "?????"
         
-        # 获取最终预测结果
+        # ????????
         confidence, predicted = torch.max(ensemble_prob, 1)
         
-        # 获取top-3预测结果
+        # ??top-3????
         top3_prob, top3_idx = torch.topk(ensemble_prob, 3)
         
-        # 获取预测类别
+        # ??????
         predicted_class = CLASS_NAMES[predicted.item()]
         confidence_score = confidence.item() * 100
         
-        # 获取top-3结果
+        # ??top-3??
         top3_results = []
         for i in range(3):
             class_name = CLASS_NAMES[top3_idx[0][i].item()]
@@ -614,7 +754,7 @@ def ensemble_predict(image_path):
         }
         
     except Exception as e:
-        print(f"预测错误: {e}")
+        print(f"????: {e}")
         return None
 
 def save_history(record):
@@ -789,9 +929,9 @@ def predict():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
-            # 使用集成模型识别病害
+            # ??????????
             prediction_result = ensemble_predict(filepath)
-            
+
             if prediction_result:
                 disease_key = prediction_result['predicted_class']
                 confidence = prediction_result['confidence']
@@ -836,7 +976,8 @@ def predict():
                 'top3': top3_results,
                 'filename': filename,
                 'method': method,
-                'model_loaded': (model1 is not None or model2 is not None)
+                'model_loaded': (model1 is not None or model2 is not None),
+                'ablation_metrics': load_ablation_metrics()
             }
             
             return jsonify(response)
