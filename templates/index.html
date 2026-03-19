@@ -748,12 +748,15 @@
                         // 复制一份用于无缝滚动
                         const historyItems = data.history.concat(data.history);
                         historyItems.forEach(item => {
+                            const historyMethod = (!item.method || /^\?+$/.test(item.method))
+                                ? '双模型集成'
+                                : item.method;
                             html += `
                                 <div class="history-item">
                                     <div class="history-time">${item.timestamp}</div>
                                     <div class="history-disease">${item.disease}</div>
                                     <div>植物: ${item.plant} | 置信度: <span class="history-confidence">${item.confidence}%</span></div>
-                                    <div>严重度: ${item.severity} | 方法: ${item.method}</div>
+                                    <div>严重度: ${item.severity} | 方法: ${historyMethod}</div>
                                 </div>
                             `;
                         });

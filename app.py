@@ -758,40 +758,52 @@ def ensemble_predict(image_path):
         return None
 
 def save_history(record):
-    """保存识别历史记录"""
+    """????????"""
     try:
-        # 读取现有历史
+        record = dict(record)
+        record['method'] = '?????'
+
         if os.path.exists(HISTORY_FILE):
             with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
                 history = json.load(f)
         else:
             history = []
-        
-        # 添加新记录
-        history.insert(0, record)  # 最新记录在前
-        
-        # 只保留最近50条记录
+
+        history.insert(0, record)
         history = history[:50]
-        
-        # 保存历史
+
         with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
             json.dump(history, f, ensure_ascii=False, indent=2)
-        
+
         return True
     except Exception as e:
-        print(f"保存历史记录失败: {e}")
+        print(f"????????: {e}")
         return False
 
+
 def load_history():
-    """加载历史记录"""
+    """????????"""
     try:
         if os.path.exists(HISTORY_FILE):
             with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                history = json.load(f)
+
+            updated = False
+            for item in history:
+                if item.get('method') != '?????':
+                    item['method'] = '?????'
+                    updated = True
+
+            if updated:
+                with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(history, f, ensure_ascii=False, indent=2)
+
+            return history
         return []
     except Exception as e:
-        print(f"加载历史记录失败: {e}")
+        print(f"????????: {e}")
         return []
+
 
 def smart_disease_detection(filepath):
     """智能病害识别（使用深度学习模型）"""
